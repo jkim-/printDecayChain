@@ -33,10 +33,12 @@ int main() {
     t->GetEntry(ev);
     for (int np = 0; np < mcLen; np++){
       cout << "Event " << ev << ", Loop # " << np << ": mcLund is " << mcLund[np] << endl;
-      if (mcLund[np] == 70553) { // Find an upsilon for root of tree
+      if (mcLund[np] != 70553) continue;
+      else { // Found an upsilon for root of tree
         queue<int> q; // q holds indices of particles
         vector<bool> v(mcLen, false); // has the particle been seen before
         vector<int> d(mcLen, 0); // depth of the particle
+
         // do BFS to explore the decay chain
         v[np] = true;
         d[np] = 0;
@@ -46,12 +48,6 @@ int main() {
         while (!q.empty()) {
           int curIdx = q.front();
           int curDepth = d[curIdx];
-          if (curDepth != prevDepth) cout << endl; // when depth changes, newline
-          if (mothIdx[curIdx] != mothIdx[prevIdx]) { // separate siblings by mothIdx
-            if (curDepth == prevDepth) cout << "| ";
-            cout << "[" << mcLund[mothIdx[curIdx]] << "] ";
-          }
-          cout << mcLund[curIdx] << " ";
           q.pop();
           int curNumDau = dauLen[curIdx];
           for (int nd = 0; nd < curNumDau; nd++) {
@@ -61,7 +57,14 @@ int main() {
               q.push(curDauIdx);
             }
           }
+          // Set current node as visited and print it out
           v[curIdx] = true;
+          if (curDepth != prevDepth) cout << endl; // when depth changes, newline
+          if (mothIdx[curIdx] != mothIdx[prevIdx]) { // group siblings by mothIdx
+            if (curDepth == prevDepth) cout << "| ";
+            cout << "[" << mcLund[mothIdx[curIdx]] << "] ";
+          }
+          cout << mcLund[curIdx] << " ";
           prevIdx = curIdx;
           prevDepth = d[curIdx];
         }
@@ -69,6 +72,8 @@ int main() {
       }
     }
   }
+  f->Close();
+  delete f;
   return 0;
 }
 
