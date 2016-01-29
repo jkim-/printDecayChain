@@ -12,10 +12,7 @@
 
 using namespace std;
 
-void printFront(queue<string> &q, string &curIdx);
-void printFrontLund(queue<string> &q, string &index, int mcLund[]);
-void printQueue(queue<string> &q);
-int getNumBars(queue<string> &q);
+void printQueue(queue<string> &q); // Helper function to cout queues
 
 int main() {
   // Read in file
@@ -32,71 +29,47 @@ int main() {
   t->SetBranchAddress("dauLen", &dauLen);
   t->SetBranchAddress("dauIdx", &dauIdx);
 
-  for (int ev = 0; ev < 1/*t->GetEntries()*/; ev++) {
+  for (int ev = 0; ev < 3/*t->GetEntries()*/; ev++) {
     t->GetEntry(ev);
-    queue<string> q; // q holds indices of particles
     for (int np = 0; np < mcLen; np++){
-      cout << "Loop # " << np << ": mcLund is " << mcLund[np] << endl;
-      //cout << "Loop # " << np << ": mothIdx is " << mothIdx[np] << endl;
+      cout << "Event " << ev << ", Loop # " << np << ": mcLund is " << mcLund[np] << endl;
       if (mcLund[np] == 70553) { // Find an upsilon for root of tree
-        q.push(to_string(np));
-        q.push("n");
-        int numDau = 0; // set numDau = 0 whenever you push("n");
-        while (q.size() > 0) {
-          // Get the first particle in queue and print it
-          string curIdx;
-          //printFront(q, curIdx);
-          printFrontLund(q, curIdx, mcLund);
-          // Add daughters to a vector of daughters
-          // and add each to the queue 
-          if (curIdx == " ") {
-            continue;
+        queue<int> q; // q holds indices of particles
+        vector<bool> v(mcLen, false); // has the particle been seen before
+        vector<int> d(mcLen, 0); // depth of the particle
+        // do BFS to explore the decay chain
+        v[np] = true;
+        d[np] = 0;
+        int prevIdx = np;
+        int prevDepth = 0;
+        q.push(np);
+        while (!q.empty()) {
+          int curIdx = q.front();
+          int curDepth = d[curIdx];
+          if (curDepth != prevDepth) cout << endl; // when depth changes, newline
+          if (mothIdx[curIdx] != mothIdx[prevIdx]) { // separate siblings by mothIdx
+            if (curDepth == prevDepth) cout << "| ";
+            cout << "[" << mcLund[mothIdx[curIdx]] << "] ";
           }
-          int curIdxInt = stoi(curIdx);
-          int curNumDau = dauLen[curIdxInt];
+          cout << mcLund[curIdx] << " ";
+          q.pop();
+          int curNumDau = dauLen[curIdx];
           for (int nd = 0; nd < curNumDau; nd++) {
-            q.push(to_string(dauIdx[curIdxInt] + nd));
+            int curDauIdx = dauIdx[curIdx] + nd;
+            if (!v[curDauIdx]) {
+              d[curDauIdx] = d[curIdx] + 1;
+              q.push(curDauIdx);
+            }
           }
-          if (curNumDau == 0) q.push(" ");
-          numDau += curNumDau;
-          int qSize = (int) q.size();
-          int nBars = getNumBars(q);
-          if (numDau == (qSize - nBars)) {
-            q.push("n");
-            numDau = 0;
-          }
-          else if (q.size() > 0) q.push("|");
+          v[curIdx] = true;
+          prevIdx = curIdx;
+          prevDepth = d[curIdx];
         }
-        break;
+        cout << endl;
       }
     }
   }
   return 0;
-}
-
-// Print the first element of queue
-// If next in line is not a number, print it also
-void printFront(queue<string> &q, string &index) {
-  index = q.front();
-  cout << index + " ";
-  q.pop();
-  if (q.size() > 0) {
-    string next = q.front();
-    if (next == "n") {cout << endl; q.pop();}
-    else if (next == "|") {cout << "| "; q.pop();}
-  }
-}
-
-void printFrontLund(queue<string> &q, string &index, int mcLund[]) {
-  index = q.front();
-  if (index != " ") cout << mcLund[stoi(index)] << " ";
-  else cout << index + " ";
-  q.pop();
-  if (q.size() > 0) {
-    string next = q.front();
-    if (next == "n") {cout << endl; q.pop();}
-    else if (next == "|") {cout << "| "; q.pop();}
-  }
 }
 
 void printQueue(queue<string> &q) {
@@ -108,16 +81,4 @@ void printQueue(queue<string> &q) {
     qCopy.pop();
   }
   cout << endl;
-}
-
-int getNumBars(queue<string> &q) {
-  queue<string> qCopy = q;
-  int qSize = (int) q.size();
-  int nBars = 0;
-  for (int i = 0; i < qSize; i++) {
-    string front = qCopy.front();
-    if (front == "|" || front == "n" || front == " ") nBars++;
-    qCopy.pop();
-  }
-  return nBars;
 }
