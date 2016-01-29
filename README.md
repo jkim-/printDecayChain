@@ -7,5 +7,6 @@ To run, first clone this repository:
 
 Then make and run the program:
 
+    cd printDecayChain/
     make
     ./printDecayChain
